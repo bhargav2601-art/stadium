@@ -7,6 +7,8 @@ import { formatDay, formatInr } from "@/lib/format";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 import { getSettings } from "@/server/settings";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [snapshot, settings, openGames] = await Promise.all([
     getFacilitiesSnapshot(),

@@ -3,6 +3,7 @@ import { Badge, Card, SectionHeader, StatusPill } from "@/components/ui/primitiv
 import { formatWhen } from "@/lib/format";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Table Tennis" };
 
 export default async function TableTennisPage() {

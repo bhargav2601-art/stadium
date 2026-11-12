@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 import { jsonError } from "@/server/guards";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const snapshot = await getFacilitiesSnapshot();

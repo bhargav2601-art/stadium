@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertBanner, Card, SectionHeader } from "@/components/ui/primitives";
 import { getSettings } from "@/server/settings";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Contact" };
 
 export default async function ContactPage() {

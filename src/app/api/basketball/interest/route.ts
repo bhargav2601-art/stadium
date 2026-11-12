@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { setBasketballInterest } from "@/server/facilities";
 import { assertSameOrigin, getCurrentUser, jsonError, requireUser } from "@/server/guards";
 
+export const dynamic = "force-dynamic";
+
 const interestSchema = z.object({
   note: z.string().trim().max(200).nullable().optional(),
 });

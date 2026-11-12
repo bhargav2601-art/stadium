@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { formatInr } from "@/lib/format";
 import { getSettings } from "@/server/settings";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Membership Plans" };
 
 export default async function MembershipPage() {

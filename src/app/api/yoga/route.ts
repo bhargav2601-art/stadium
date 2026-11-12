@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { createYogaSession } from "@/server/facilities";
 import { assertSameOrigin, jsonError, requireUser } from "@/server/guards";
 
+export const dynamic = "force-dynamic";
+
 const createYogaSchema = z.object({
   title: z.string().trim().min(3).max(120),
   startsAt: z.string().datetime({ offset: true }),

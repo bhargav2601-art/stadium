@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AlertBanner, Card, SectionHeader, StatusPill } from "@/components/ui/primitives";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Gym" };
 
 export default async function GymPage() {

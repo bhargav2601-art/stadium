@@ -4,6 +4,7 @@ import { isStatusStale } from "@/domain/staleness";
 import { formatWhen } from "@/lib/format";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Facilities" };
 
 const KIND_ROUTES: Record<string, string> = {

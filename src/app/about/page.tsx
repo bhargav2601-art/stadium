@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, SectionHeader } from "@/components/ui/primitives";
 import { getSettings } from "@/server/settings";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "About" };
 
 export default async function AboutPage() {

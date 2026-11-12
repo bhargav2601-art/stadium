@@ -4,6 +4,7 @@ import { AlertBanner, Badge, Card, SectionHeader } from "@/components/ui/primiti
 import { formatWhen } from "@/lib/format";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Morning Yoga" };
 
 export default async function YogaPage() {

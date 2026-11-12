@@ -14,31 +14,41 @@ This guide covers deploying the Next.js 16 + Prisma 7 + PostgreSQL application t
 ---
 
 ## 2. Required Production Environment Variables
-Set these in Vercel Project Settings -> Environment Variables (see `.env.example`):
+Set these in **Vercel -> Project Settings -> Environment Variables** for **Production** (and **Preview** if preview deployments connect to a staging DB). See `.env.example`:
 
-| Variable | Notes |
-| --- | --- |
-| `DATABASE_URL` | Pooled or direct production PostgreSQL connection string (SSL enabled) |
-| `DIRECT_URL` | Direct non-pooled Postgres URL (recommended for Prisma migrations on PgBouncer/Neon/Supabase hosts) |
-| `APP_URL` | Canonical HTTPS URL (e.g. `https://anilkumblestadium.example.com`) |
-| `CRON_SECRET` | High-entropy random secret (`openssl rand -hex 32`) authorizing `POST /api/cron/reminders` |
-| `SANDBOX_PAYMENT_SECRET` | High-entropy random secret (`openssl rand -hex 32`); do not leave empty |
-| `RAZORPAY_KEY_ID` | Razorpay Key ID (set for real Razorpay checkout) |
-| `RAZORPAY_KEY_SECRET` | Razorpay Key Secret |
-| `RAZORPAY_WEBHOOK_SECRET` | Razorpay Webhook Secret configured in Razorpay Dashboard |
-| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Public Razorpay Key ID (matches `RAZORPAY_KEY_ID`) |
-| `SEED_ADMIN_EMAIL` | Initial Super Administrator login email (bootstrap only) |
-| `SEED_ADMIN_PASSWORD` | Strong unique password (bootstrap only — rotate after first login if needed) |
-| `SEED_DEMO_DATA` | **Must be `"false"`** (or unset) in production |
+| Variable | Required | Notes |
+| --- | --- | --- |
+| `DATABASE_URL` | **Yes** | Hosted PostgreSQL runtime connection string (`?sslmode=require`; if using PgBouncer/transaction pooler such as Supabase port `6543` or Neon `-pooler`, keep `DATABASE_URL` pooled and set `DIRECT_URL` below) |
+| `DIRECT_URL` | Recommended | Direct non-pooled PostgreSQL URL (`?sslmode=require`, port `5432`) used by `prisma.config.ts` during `prisma migrate deploy`; falls back to `DATABASE_URL` when unset |
+| `APP_URL` | **Yes** | Canonical HTTPS URL with no trailing slash (e.g. `https://your-project.vercel.app` or custom domain) |
+| `CRON_SECRET` | **Yes** | High-entropy random secret (`openssl rand -hex 32`) authorizing `POST /api/cron/reminders` |
+| `SANDBOX_PAYMENT_SECRET` | **Yes** | High-entropy random secret (`openssl rand -hex 32`) used to sign fallback checkout verification; never leave blank |
+| `RAZORPAY_KEY_ID` | For live/test Razorpay | Razorpay Key ID (omit to keep server-signed sandbox checkout only) |
+| `RAZORPAY_KEY_SECRET` | For live/test Razorpay | Razorpay Key Secret |
+| `RAZORPAY_WEBHOOK_SECRET` | For live/test Razorpay | Razorpay Webhook Secret configured in Razorpay Dashboard |
+| `NEXT_PUBLIC_RAZORPAY_KEY_ID` | For live/test Razorpay | Public Razorpay Key ID (must match `RAZORPAY_KEY_ID`) |
+| `SEED_ADMIN_EMAIL` | Bootstrap only | Initial `SUPER_ADMINISTRATOR` email when running `pnpm db:seed` |
+| `SEED_ADMIN_PASSWORD` | Bootstrap only | Strong unique password for initial `pnpm db:seed` (do not use demo passwords) |
+| `SEED_DEMO_DATA` | Recommended `"false"` | **Must be `"false"`** (or unset) in production so demo accounts are never created |
 
 ---
 
 ## 3. Database Migration & Initial Bootstrap
-Run migrations against the production database **before** switching traffic:
+Production migrations are automated via `vercel.json` -> `pnpm run vercel-build`:
+
+```bash
+prisma generate && prisma migrate deploy && next build --webpack
+```
+
+Note on build-time vs runtime database behavior:
+- `src/lib/db.ts` initializes `PrismaClient` lazily on first query/transaction rather than at module import time, and public/dynamic App Router pages and API routes declare `export const dynamic = "force-dynamic"`, so `next build` itself never executes PostgreSQL queries during static page generation.
+- `prisma migrate deploy` inside `vercel-build` runs once per Vercel deployment against `DIRECT_URL` (or `DATABASE_URL` if `DIRECT_URL` is unset), applying pending SQL files from `prisma/migrations/`.
+
+For initial manual migration verification and one-time stadium catalog bootstrap against your hosted PostgreSQL database:
 
 ```bash
 pnpm exec prisma generate
-pnpm exec prisma migrate deploy
+pnpm db:migrate:deploy
 SEED_DEMO_DATA=false pnpm db:seed
 ```
 
@@ -52,9 +62,10 @@ Verify after bootstrap:
 
 ## 4. Vercel Deployment & Domain / HTTPS
 1. Connect the repository to **Vercel** (Framework Preset: **Next.js**).
-2. Confirm Build Command is `pnpm build` (note `postinstall` runs `prisma generate`).
-3. Add your custom domain in **Vercel -> Project Settings -> Domains** and verify DNS (`A` / `CNAME`) records. Vercel provisions and renews TLS/HTTPS certificates automatically.
-4. Security headers in `next.config.ts` (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security` over HTTPS) and `SameSite=Lax; HttpOnly; Secure` session cookies take effect automatically in production (`NODE_ENV === "production"`).
+2. Add the environment variables from Section 2 in **Vercel -> Project Settings -> Environment Variables** **before** triggering the build (Make sure they are enabled for **Production** and **Preview** as needed so `prisma migrate deploy` can reach PostgreSQL during `vercel-build`).
+3. `vercel.json` configures `pnpm install --frozen-lockfile` and `pnpm run vercel-build` (`prisma generate && prisma migrate deploy && next build --webpack`), and `postinstall` also runs `prisma generate`.
+4. Add your custom domain in **Vercel -> Project Settings -> Domains** and verify DNS (`A` / `CNAME`) records. Vercel provisions and renews TLS/HTTPS certificates automatically.
+5. Security headers in `next.config.ts` (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security` over HTTPS) and `SameSite=Lax; HttpOnly; Secure` session cookies take effect automatically in production (`NODE_ENV === "production"`).
 
 ---
 

@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { scheduleBasketballSession, toggleBasketballSessionState } from "@/server/facilities";
 import { assertSameOrigin, jsonError, requireUser } from "@/server/guards";
 
+export const dynamic = "force-dynamic";
+
 const createSchema = z.object({
   startsAt: z.string().datetime({ offset: true }),
   endsAt: z.string().datetime({ offset: true }),

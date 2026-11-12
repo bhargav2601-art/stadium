@@ -3,6 +3,7 @@ import { AlertBanner, Card, SectionHeader, StatCard } from "@/components/ui/prim
 import { formatWhen } from "@/lib/format";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Basketball Shared-Floor Mode" };
 
 export default async function BasketballPage() {

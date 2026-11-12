@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { formatDay, formatWhen } from "@/lib/format";
 import { getFacilitiesSnapshot } from "@/server/facilities";
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Badminton" };
 
 export default async function BadmintonPage() {
