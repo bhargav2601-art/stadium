@@ -1,0 +1,675 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  MEMBER
+  STAFF
+  ADMINISTRATOR
+  SUPER_ADMINISTRATOR
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRING_SOON
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  ONLINE
+  OFFLINE
+}
+
+enum PaymentPurpose {
+  INITIAL
+  RENEWAL
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING_VERIFICATION
+  PAID
+  FAILED
+  REJECTED
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum PlayStyle {
+  CASUAL
+  COMPETITIVE
+}
+
+enum PreferredTime {
+  MORNING
+  EVENING
+  BOTH
+}
+
+enum Sport {
+  BADMINTON
+  TABLE_TENNIS
+}
+
+enum GameType {
+  SINGLES
+  DOUBLES
+}
+
+enum JoinMode {
+  OPEN
+  APPROVAL
+}
+
+enum GameStatus {
+  CREATED
+  OPEN
+  FULL
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  INCOMPLETE
+  WAITING_FOR_REPLACEMENT
+}
+
+enum ParticipantStatus {
+  CONFIRMED
+  REQUESTED
+  DECLINED
+  CANCELLED
+  NO_SHOW
+  REPLACED
+}
+
+enum WaitlistStatus {
+  WAITING
+  OFFERED
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  PROMOTED
+}
+
+enum AttendanceMark {
+  PRESENT
+  ABSENT
+}
+
+enum CourtStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  TRANSITION
+  BASKETBALL
+}
+
+enum FacilityKind {
+  BADMINTON
+  GYM
+  TABLE_TENNIS
+  YOGA
+  BASKETBALL
+}
+
+enum SessionPeriod {
+  MORNING
+  EVENING
+}
+
+enum NotificationType {
+  GAME_INVITATION
+  GAME_JOIN_REQUEST
+  JOIN_REQUEST_APPROVED
+  JOIN_REQUEST_DECLINED
+  PLAYER_JOINED
+  GAME_FULL
+  GAME_CANCELLED
+  PLAYER_CANCELLED
+  REPLACEMENT_NEEDED
+  WAITLIST_OFFER
+  GAME_REMINDER
+  MEMBERSHIP_EXPIRY
+  PAYMENT_CONFIRMATION
+  PAYMENT_VERIFICATION
+  YOGA_ANNOUNCEMENT
+  BASKETBALL_INTEREST
+  BASKETBALL_SCHEDULED
+  FACILITY_CLOSURE
+  STADIUM_ANNOUNCEMENT
+  MESSAGE
+}
+
+enum IssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum ModerationStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(MEMBER)
+  name         String
+  phone        String?
+  avatarUrl    String?
+  bio          String?
+  blocked      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  playerProfile          PlayerProfile?
+  membership             Membership?
+  sessions               Session[]
+  payments               Payment[]
+  verifiedPayments       Payment[]            @relation("PaymentVerifier")
+  organizedGames         Game[]               @relation("GameOrganizer")
+  participations         GameParticipant[]
+  waitlistEntries        GameWaitlist[]
+  availability           PlayerAvailability[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  yogaSessionsCreated    YogaSession[]        @relation("YogaCreator")
+  yogaRegistrations      YogaRegistration[]
+  basketballInterest     BasketballInterest?
+  basketballSessions     BasketballSession[]  @relation("BasketballCreator")
+  checkIns               FacilityCheckIn[]    @relation("CheckInMember")
+  verifiedCheckIns       FacilityCheckIn[]    @relation("CheckInVerifier")
+  reportsFiled           FacilityReport[]     @relation("ReportAuthor")
+  staffAssignments       StaffAssignment[]
+  auditLogs              AdminAuditLog[]      @relation("AuditActor")
+  messagesSent           Message[]            @relation("MessageSender")
+  messagesReceived       Message[]            @relation("MessageRecipient")
+  blocksMade             UserBlock[]          @relation("Blocker")
+  blocksReceived         UserBlock[]          @relation("Blocked")
+  reportsMade            MemberReport[]       @relation("Reporter")
+  reportsReceived        MemberReport[]       @relation("Reported")
+  attendanceMarks        GameAttendance[]     @relation("AttendanceSubject")
+  attendanceRecorded     GameAttendance[]     @relation("AttendanceMarker")
+  courtStatusChanges     CourtStatusHistory[]
+  queueEntries           CourtQueueEntry[]
+
+  @@index([role])
+  @@map("profiles")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model PlayerProfile {
+  id            String        @id @default(cuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillLevel    SkillLevel    @default(BEGINNER)
+  preferredGame GameType?
+  preferredTime PreferredTime @default(BOTH)
+  playStyle     PlayStyle     @default(CASUAL)
+  sports        String[]      @default([])
+  availableNow  Boolean       @default(false)
+  intro         String?
+  noShowCount   Int           @default(0)
+  flaggedForReview Boolean    @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("player_profiles")
+}
+
+model MembershipPlan {
+  id           String  @id @default(cuid())
+  code         String  @unique
+  name         String
+  amountPaise  Int
+  intervalDays Int
+  active       Boolean @default(true)
+  updatedAt    DateTime @updatedAt
+
+  @@map("membership_plans")
+}
+
+model Membership {
+  id        String           @id @default(cuid())
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  status    MembershipStatus @default(PENDING)
+  startedAt DateTime?
+  expiresAt DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  payments  Payment[]
+
+  @@index([status, expiresAt])
+  @@map("memberships")
+}
+
+model Payment {
+  id                 String         @id @default(cuid())
+  userId             String
+  user               User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  membershipId       String
+  membership         Membership     @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  purpose            PaymentPurpose
+  method             PaymentMethod
+  amountPaise        Int
+  currency           String         @default("INR")
+  status             PaymentStatus  @default(CREATED)
+  provider           String
+  providerOrderId    String?        @unique
+  providerPaymentId  String?        @unique
+  offlineReference   String?
+  verifiedById       String?
+  verifiedBy         User?          @relation("PaymentVerifier", fields: [verifiedById], references: [id])
+  verifiedAt         DateTime?
+  receiptNumber      String?        @unique
+  failureReason      String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@map("payments")
+}
+
+model PaymentWebhookEvent {
+  id               String    @id @default(cuid())
+  provider         String
+  providerEventId  String
+  payloadHash      String
+  status           String
+  processedAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  @@unique([provider, providerEventId])
+  @@map("payment_webhook_events")
+}
+
+model Facility {
+  id            String       @id @default(cuid())
+  kind          FacilityKind @unique
+  name          String
+  summary       String
+  description   String
+  active        Boolean      @default(true)
+  closed        Boolean      @default(false)
+  closedReason  String?
+  crowdLevel    String?
+  schedules     FacilitySchedule[]
+  courts        Court[]
+  checkIns      FacilityCheckIn[]
+  reports       FacilityReport[]
+  assignments   StaffAssignment[]
+  queue         CourtQueueEntry[]
+  updatedAt     DateTime     @updatedAt
+
+  @@map("facilities")
+}
+
+model FacilitySchedule {
+  id          String        @id @default(cuid())
+  facilityId  String
+  facility    Facility      @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int
+  period      SessionPeriod
+  opensAt     String
+  closesAt    String
+  provisional Boolean       @default(true)
+
+  @@unique([facilityId, dayOfWeek, period])
+  @@map("facility_schedules")
+}
+
+model Court {
+  id              String      @id @default(cuid())
+  facilityId      String
+  facility        Facility    @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  name            String
+  code            String
+  status          CourtStatus @default(AVAILABLE)
+  statusNote      String?
+  updatedById     String?
+  statusUpdatedAt DateTime    @default(now())
+  history         CourtStatusHistory[]
+
+  @@unique([facilityId, code])
+  @@map("courts")
+}
+
+model CourtStatusHistory {
+  id          String      @id @default(cuid())
+  courtId     String
+  court       Court       @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  status      CourtStatus
+  note        String?
+  updatedById String?
+  updatedBy   User?       @relation(fields: [updatedById], references: [id])
+  createdAt   DateTime    @default(now())
+
+  @@index([courtId, createdAt])
+  @@map("court_status_history")
+}
+
+model CourtQueueEntry {
+  id         String   @id @default(cuid())
+  facilityId String
+  facility   Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@unique([facilityId, userId])
+  @@index([facilityId, createdAt])
+  @@map("court_queue")
+}
+
+model FacilityCheckIn {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation("CheckInMember", fields: [userId], references: [id], onDelete: Cascade)
+  facilityId   String
+  facility     Facility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  courtId      String?
+  verifiedById String
+  verifiedBy   User      @relation("CheckInVerifier", fields: [verifiedById], references: [id])
+  checkedInAt  DateTime  @default(now())
+  checkedOutAt DateTime?
+
+  @@index([facilityId, checkedInAt])
+  @@index([userId, checkedInAt])
+  @@map("facility_checkins")
+}
+
+model PlayerAvailability {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime      @db.Date
+  period    SessionPeriod
+  sport     Sport
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@unique([userId, date, period, sport])
+  @@index([date, period, sport])
+  @@map("player_availability")
+}
+
+model Game {
+  id          String        @id @default(cuid())
+  sport       Sport
+  gameType    GameType
+  date        DateTime      @db.Date
+  period      SessionPeriod
+  startTime   String?
+  skillLevel  SkillLevel?
+  playStyle   PlayStyle?
+  maxPlayers  Int
+  joinMode    JoinMode      @default(OPEN)
+  status      GameStatus    @default(OPEN)
+  description String?
+  organizerId String
+  organizer   User          @relation("GameOrganizer", fields: [organizerId], references: [id])
+  startedAt   DateTime?
+  completedAt DateTime?
+  graceMinutes Int          @default(15)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  participants GameParticipant[]
+  waitlist    GameWaitlist[]
+  attendance  GameAttendance[]
+
+  @@index([date, status, sport])
+  @@index([organizerId])
+  @@map("games")
+}
+
+model GameParticipant {
+  id        String            @id @default(cuid())
+  gameId    String
+  game      Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    ParticipantStatus
+  joinedAt  DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@unique([gameId, userId])
+  @@index([userId, status])
+  @@map("game_participants")
+}
+
+model GameWaitlist {
+  id             String         @id @default(cuid())
+  gameId         String
+  game           Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position       Int
+  status         WaitlistStatus @default(WAITING)
+  offeredAt      DateTime?
+  offerExpiresAt DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([gameId, userId])
+  @@index([gameId, status, position])
+  @@map("game_waitlists")
+}
+
+model GameAttendance {
+  id         String         @id @default(cuid())
+  gameId     String
+  game       Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation("AttendanceSubject", fields: [userId], references: [id], onDelete: Cascade)
+  status     AttendanceMark
+  markedById String
+  markedBy   User           @relation("AttendanceMarker", fields: [markedById], references: [id])
+  markedAt   DateTime       @default(now())
+
+  @@unique([gameId, userId])
+  @@map("game_attendance")
+}
+
+model YogaSession {
+  id          String   @id @default(cuid())
+  title       String
+  startsAt    DateTime
+  endsAt      DateTime
+  capacity    Int?
+  notes       String?
+  cancelled   Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation("YogaCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  registrations YogaRegistration[]
+
+  @@index([startsAt])
+  @@map("yoga_sessions")
+}
+
+model YogaRegistration {
+  id          String      @id @default(cuid())
+  sessionId   String
+  session     YogaSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cancelledAt DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@unique([sessionId, userId])
+  @@map("yoga_registrations")
+}
+
+model BasketballInterest {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@map("basketball_interest")
+}
+
+model BasketballSession {
+  id          String    @id @default(cuid())
+  startsAt    DateTime
+  endsAt      DateTime
+  notes       String?
+  published   Boolean   @default(false)
+  endedAt     DateTime?
+  createdById String
+  createdBy   User      @relation("BasketballCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([startsAt])
+  @@map("basketball_sessions")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inApp      Boolean  @default(true)
+  email      Boolean  @default(false)
+  mutedTypes NotificationType[] @default([])
+  updatedAt  DateTime @updatedAt
+
+  @@map("notification_preferences")
+}
+
+model FacilityReport {
+  id           String      @id @default(cuid())
+  facilityId   String
+  facility     Facility    @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  courtId      String?
+  reportedById String
+  reportedBy   User        @relation("ReportAuthor", fields: [reportedById], references: [id])
+  description  String
+  status       IssueStatus @default(OPEN)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([status])
+  @@map("facility_reports")
+}
+
+model StaffAssignment {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  facilityId String
+  facility   Facility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, facilityId])
+  @@map("staff_assignments")
+}
+
+model AdminAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  action    String
+  entity    String
+  entityId  String
+  metadata  Json
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entity, entityId])
+  @@map("admin_audit_logs")
+}
+
+model ApplicationSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("application_settings")
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  senderId    String
+  sender      User      @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User      @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([recipientId, createdAt])
+  @@index([senderId, createdAt])
+  @@map("messages")
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@map("user_blocks")
+}
+
+model MemberReport {
+  id         String           @id @default(cuid())
+  reporterId String
+  reporter   User             @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId String
+  reported   User             @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason     String
+  status     ModerationStatus @default(OPEN)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  @@index([status])
+  @@map("member_reports")
+}

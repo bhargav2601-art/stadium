@@ -1,0 +1,51 @@
+# Project Plan — Anil Kumble Stadium
+
+## Master Implementation Checklist
+
+- [x] **Phase 0 – Full Project Audit**
+  - [x] Inspect full repository, `package.json`, `prisma/schema.prisma`, `src/domain/*`, `src/server/*`, `src/lib/*`
+  - [x] Verify existing tooling (`tsc`, `eslint`, `vitest`, PostgreSQL connectivity)
+  - [x] Create `ANTIGRAVITY_HANDOVER.md` and initialize core documentation
+- [x] **Phase 1 – Repair the Foundation**
+  - [x] Add ESLint 9 flat config (`eslint.config.mjs`)
+  - [x] Fix `scheduledStart` evening-time rollover bug (`src/domain/time.ts`) and harden `rate-limit.ts`, `membership.ts`, `auth.ts`, `text.ts`, `notifications.ts`
+  - [x] Configure Vitest (`vitest.config.mts`) and write initial domain + server unit tests
+  - [x] Verify `pnpm lint`, `pnpm typecheck`, `pnpm test`, and DB connectivity
+- [x] **Phase 2 – Database & Seed**
+  - [x] Create initial Prisma migration (`prisma/migrations/`) and apply to dev & test DBs
+  - [x] Create `prisma/seed.ts` (settings, membership plans ₹5,000/₹1,000, 5 facilities, 4 badminton courts, 2 TT tables, provisional schedules, env-driven admin, optional dev sample data)
+  - [x] Run and verify `pnpm db:seed`
+- [x] **Phase 3 – Authentication & Session Handling**
+  - [x] Secure HTTP-only cookie session helpers & RBAC/membership guards
+  - [x] `/api/auth/register`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`, `/api/auth/change-password`
+  - [x] Login & Registration pages (`/login`, `/register`)
+- [x] **Phase 4 – Complete Frontend Design System**
+  - [x] Consulted `modern-web-guidance` skill (`dialog`, `accessibility`, `forms`, `navigation-drawer`)
+  - [x] Tailwind v4 tokens, athletic typography, Navy/Stadium Blue/Electric Lime palette (`src/app/globals.css`)
+  - [x] Reusable UI component library (`src/components/ui/*`) & responsive `SiteHeader`/`SiteFooter`/`PortalShell`
+- [x] **Phase 5 – Public Website**
+  - [x] Homepage, About, Facilities hub, Badminton, Gym, Table Tennis, Yoga, Basketball, Membership Plans, Contact, Login, Register
+- [x] **Phase 6 – Member Portal**
+  - [x] Dashboard, Profile & PlayerProfile, Membership & Payment History, Notifications & Preferences, Facilities Overview, Find Players, My Games, My Availability, Direct Messages
+- [x] **Phase 7 – Badminton Matchmaking Backend & UI**
+  - [x] Player availability API & UI (`/portal/availability`)
+  - [x] Singles & Doubles game creation, Open & Approval modes (`/portal/games`, `/portal/games/[id]`)
+  - [x] Row-locked transactional join, request review, cancellation, replacement, waitlist queue & timed offers
+  - [x] Attendance marking, no-show counting & flagging, game history, reminder/expiry cron (`POST /api/cron/reminders`)
+- [x] **Phase 8 – Facility Management**
+  - [x] 4 badminton courts (`B1`–`B4`), 2 TT tables (`TT1`–`TT2`), Gym status, walk-in queue, facility issue reports
+  - [x] Morning-only Yoga scheduling & capacity-safe registration
+  - [x] Basketball interest registration (10–15 target) & explicit admin shared-floor conversion/restoration
+- [x] **Phase 9 – Staff & Admin Dashboards**
+  - [x] Staff portal: overview (`/staff`), court monitor (`/staff/courts`), check-in verification (`/staff/checkins`), game attendance (`/staff/attendance`), facility issues (`/staff/issues`)
+  - [x] Admin portal: overview (`/admin`), members & roles (`/admin/members`), payment verification (`/admin/payments`), games (`/admin/games`), facilities & staff (`/admin/facilities`), yoga (`/admin/yoga`), basketball (`/admin/basketball`), reports & announcements (`/admin/reports`), settings & audit logs (`/admin/settings`)
+- [x] **Phase 10 – Payments & Notifications**
+  - [x] Razorpay Orders + signature verification + webhook idempotency (when Razorpay keys configured)
+  - [x] Signed sandbox checkout fallback + offline payment reference & admin verification
+  - [x] Receipts (`/portal/receipts/[id]`) & in-app notification triggers
+- [x] **Phase 11 – Testing & Quality Gate**
+  - [x] Unit tests (`14` tests) + PostgreSQL transactional integration tests (`4` full suites covering concurrency, RBAC, expiry, payments, yoga, basketball)
+  - [x] Full `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` pass
+- [x] **Phase 12 – Deployment Preparation**
+  - [x] Finalize `DEPLOYMENT.md` (Vercel, Postgres, migrations, webhooks, cron, backups, HTTPS)
+  - [x] Final documentation & changelog pass (live cloud provisioning/deploy remains for target environment credentials)

@@ -1,0 +1,17 @@
+node_modules
+.next
+generated
+public/uploads/*
+!public/uploads/.gitkeep
+.env
+.env.local
+.env.*.local
+*.log
+coverage
+dist
+.DS_Store
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+playwright-report
+test-results
